@@ -1,229 +1,323 @@
+"""
+plot_results.py
+
+Parses all val.log files under RUNS_ROOT and generates:
+  - mAP50 vs bit-width
+  - mAP50-95 vs bit-width
+  - F1 vs bit-width (estimated as 2*P*R / (P+R))
+  - Inference time vs bit-width
+  - mAP50 / bit-width vs bit-width
+  - F1 / bit-width vs bit-width
+  - Delta plots (bit-by-bit difference) for mAP50, mAP50-95, F1
+  - Quantization error (%) vs bit-width (computed from weights)
+
+Usage:
+    python plot.py
+"""
+
 import re
-import os
+import sys
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-base_dir = "/home/everest/EECE490/quantize/runs"
+sys.path.insert(0, str(Path(__file__).parent))
+import config
+import torch
+from ultralytics import YOLO
+from quantization_helpers import quantization_methods
 
-def parse_logs(quant_dir):
-    """Parse all numbered subfolders in a quantization directory."""
-    bits_list = []
-    P_list = []
-    R_list = []
-    map50_list = []
-    map5095_list = []
-    inference_list = []
+ROOT = Path(config.ROOT)
+RUNS_ROOT = ROOT / "runs" / "quantized_models"
+MODEL_ROOT = ROOT / "models"
+OUTPUT_DIR = ROOT / "plots"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    if not os.path.exists(quant_dir):
-        print(f"Directory not found: {quant_dir}")
+
+# -------------------------------------------------------------------
+# Parsing
+# -------------------------------------------------------------------
+
+def parse_log(log_path: Path) -> dict | None:
+    text = log_path.read_text(errors="ignore")
+
+    metrics = re.search(
+        r"all\s+\d+\s+\d+\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)",
+        text
+    )
+    speed = re.search(r"([\d.]+)ms inference", text)
+
+    if not metrics:
         return None
 
-    subfolders = sorted([
-        d for d in os.listdir(quant_dir)
-        if os.path.isdir(os.path.join(quant_dir, d)) and d.isdigit()
-    ], key=lambda x: int(x))
-
-    for subfolder in subfolders:
-        bits = int(subfolder)
-        log_file = os.path.join(quant_dir, subfolder, "val.log")
-
-        if not os.path.exists(log_file):
-            print(f"  Skipping bits={bits}: val.log not found")
-            continue
-
-        with open(log_file, 'r') as f:
-            content = f.read()
-
-        content = re.sub(r'\x1b\[[0-9;]*m', '', content)
-        content = re.sub(r'\[K', '', content)
-
-        # Parse mAP/P/R
-        match = re.search(
-            r'all\s+\d+\s+\d+\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)',
-            content
-        )
-
-        # Parse speed
-        speed_match = re.search(
-            r'Speed:.*?([\d.]+)ms preprocess,\s*([\d.]+)ms inference,\s*([\d.]+)ms loss,\s*([\d.]+)ms postprocess',
-            content
-        )
-
-        if match:
-            P, R, map50, map5095 = [float(x) for x in match.groups()]
-            bits_list.append(bits)
-            P_list.append(P)
-            R_list.append(R)
-            map50_list.append(map50)
-            map5095_list.append(map5095)
-
-            if speed_match:
-                inference_ms = float(speed_match.group(2))
-                inference_list.append(inference_ms)
-                print(f"  bits={bits}: P={P:.3f} R={R:.3f} mAP50={map50:.3f} mAP50-95={map5095:.3f} inference={inference_ms:.1f}ms")
-            else:
-                inference_list.append(None)
-                print(f"  bits={bits}: P={P:.3f} R={R:.3f} mAP50={map50:.3f} mAP50-95={map5095:.3f} inference=N/A")
-        else:
-            print(f"  bits={bits}: Could not parse val.log")
-
-    if not bits_list:
-        return None
-
-    bits_arr    = np.array(bits_list)[::-1]
-    P_arr       = np.array(P_list)[::-1]
-    R_arr       = np.array(R_list)[::-1]
-    map50_arr   = np.array(map50_list)[::-1]
-    map5095_arr = np.array(map5095_list)[::-1]
-    f1_arr      = 2 * (P_arr * R_arr) / (P_arr + R_arr + 1e-8)
-    inference_arr = np.array(inference_list[::-1], dtype=float)
+    precision = float(metrics.group(1))
+    recall = float(metrics.group(2))
+    map50 = float(metrics.group(3))
+    map5095 = float(metrics.group(4))
+    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+    inference_ms = float(speed.group(1)) if speed else None
 
     return {
-        'bits': bits_arr,
-        'P': P_arr,
-        'R': R_arr,
-        'map50': map50_arr,
-        'map5095': map5095_arr,
-        'f1': f1_arr,
-        'inference': inference_arr,
-        'f1_eff': f1_arr / bits_arr,
-        'map50_eff': map50_arr / bits_arr,
-        'map5095_eff': map5095_arr / bits_arr,
+        "P": precision,
+        "R": recall,
+        "F1": f1,
+        "mAP50": map50,
+        "mAP50-95": map5095,
+        "inference_ms": inference_ms,
     }
 
 
-def make_plot(bits_arr, y_arr, eff_arr, best_bit, best_eff, ylabel, title, out_path):
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-    fig.suptitle(title, fontsize=10, fontweight='bold')
+def collect_results() -> dict:
+    results = {}
 
-    axes[0].plot(bits_arr, y_arr, 'o-', color='black', linewidth=2, markersize=4)
-    axes[0].axvline(x=best_bit, color='red', linestyle='--', linewidth=1, label=f'Peak at {best_bit}-bit')
-    axes[0].set_xlabel("Num Bits", fontsize=10)
-    axes[0].set_ylabel(ylabel, fontsize=10)
-    axes[0].set_title(f"{ylabel} vs Num Bits", fontsize=10)
-    axes[0].grid(True, alpha=0.3)
-    axes[0].set_xticks(bits_arr[::2])
-    axes[0].invert_xaxis()
-    axes[0].legend()
+    for log_path in RUNS_ROOT.rglob("val.log"):
+        parts = log_path.parts
+        try:
+            qm_idx = parts.index("quantized_models") + 1
+            method = parts[qm_idx]
+            stem = parts[qm_idx + 3]
+        except (ValueError, IndexError):
+            continue
 
-    axes[1].plot(bits_arr, eff_arr, 'o-', color='black', linewidth=2, markersize=4)
-    axes[1].axvline(x=best_bit, color='red', linestyle='--', linewidth=1,
-                    label=f'Peak at {best_bit}-bit ({ylabel}/bit={best_eff:.4f})')
-    axes[1].set_xlabel("Num Bits", fontsize=10)
-    axes[1].set_ylabel(f"{ylabel} / Num Bits", fontsize=10)
-    axes[1].set_title(f"Efficiency ({ylabel} per Bit) vs Num Bits", fontsize=10)
-    axes[1].grid(True, alpha=0.3)
-    axes[1].set_xticks(bits_arr[::2])
-    axes[1].invert_xaxis()
-    axes[1].legend()
+        bits_match = re.search(r"_(\d+)bit$", stem)
+        if not bits_match:
+            continue
+        bits = int(bits_match.group(1))
+        model_name = stem[:bits_match.start()]
 
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150, bbox_inches='tight')
-    plt.close()
-    print(f"  Saved: {out_path}")
+        metrics = parse_log(log_path)
+        if metrics is None:
+            continue
+
+        metrics["mAP50_per_bit"] = metrics["mAP50"] / bits
+        metrics["F1_per_bit"] = metrics["F1"] / bits
+        metrics["log_path"] = log_path
+
+        results.setdefault(method, {}).setdefault(model_name, {})[bits] = metrics
+
+    return results
 
 
-def plot_inference(bits_arr, inference_arr, out_path, label):
-    fig, ax = plt.subplots(figsize=(8, 5))
-    fig.suptitle(f"YOLO11n {label}: Inference Time vs Num Bits", fontsize=10, fontweight='bold')
+# -------------------------------------------------------------------
+# Quantization error
+# -------------------------------------------------------------------
 
-    ax.plot(bits_arr, inference_arr, 'o-', color='black', linewidth=2, markersize=4)
-    ax.set_xlabel("Num Bits", fontsize=10)
-    ax.set_ylabel("Inference Time (ms)", fontsize=10)
-    ax.set_title("Inference Time vs Num Bits", fontsize=10)
+def compute_quant_error(pt_path: Path, quant_fn, bits: int) -> float:
+    yolo = YOLO(str(pt_path))
+    model: torch.nn.Module = yolo.model  # type: ignore
+    errors = []
+    with torch.no_grad():
+        for _, param in model.named_parameters():
+            if param.dtype != torch.float32 or param.ndim < 2:
+                continue
+            original = param.data.clone()
+            quantized = quant_fn(original, num_bits=bits)
+            abs_orig = original.abs()
+            nonzero = abs_orig > 0
+            if nonzero.any():
+                pct_err = (
+                    (original - quantized).abs()[nonzero] / abs_orig[nonzero]
+                ).mean().item() * 100
+                errors.append(pct_err)
+    return float(np.mean(errors)) if errors else 0.0
+
+
+def collect_quant_errors() -> dict:
+    errors = {}
+    pt_files = list(MODEL_ROOT.rglob("*.pt"))
+
+    for pt_path in pt_files:
+        model_name = pt_path.stem
+        print(f"Computing quantization errors for {model_name}...")
+        for quant_fn in quantization_methods:
+            method = quant_fn.__name__
+            max_bits = 8 if method == "PoTPTQ" else 32
+            for bits in range(2, max_bits + 1):
+                err = compute_quant_error(pt_path, quant_fn, bits)
+                errors.setdefault(method, {}).setdefault(model_name, {})[bits] = err
+                print(f"  {method} {bits}bit: {err:.4f}%", end="\r", flush=True)
+        print()
+
+    return errors
+
+
+# -------------------------------------------------------------------
+# Plotting helpers
+# -------------------------------------------------------------------
+
+def _setup_ax(ax, xlabel: str, ylabel: str, title: str,
+              log_scale: bool = False, bottom: float | None = 0):
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.legend(fontsize=8)
     ax.grid(True, alpha=0.3)
-    ax.set_xticks(bits_arr[::2])
+    ax.set_xticks(range(2, 33, 2))
     ax.invert_xaxis()
-
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150, bbox_inches='tight')
-    plt.close()
-    print(f"  Saved: {out_path}")
-
-
-def plot_metrics(data, label, out_dir):
-    os.makedirs(out_dir, exist_ok=True)
-
-    bits_arr    = data['bits']
-    f1_arr      = data['f1']
-    map50_arr   = data['map50']
-    map5095_arr = data['map5095']
-    f1_eff      = data['f1_eff']
-    map50_eff   = data['map50_eff']
-    map5095_eff = data['map5095_eff']
-    inference_arr = data['inference']
-
-    best_f1_bit      = bits_arr[np.argmax(f1_eff)]
-    best_map50_bit   = bits_arr[np.argmax(map50_eff)]
-    best_map5095_bit = bits_arr[np.argmax(map5095_eff)]
-
-    make_plot(bits_arr, f1_arr, f1_eff, best_f1_bit,
-              f1_eff[np.argmax(f1_eff)],
-              "F1 Score", f"YOLO11n {label}: F1 vs Num Bits",
-              os.path.join(out_dir, "f1_tradeoff.png"))
-
-    make_plot(bits_arr, map50_arr, map50_eff, best_map50_bit,
-              map50_eff[np.argmax(map50_eff)],
-              "mAP50", f"YOLO11n {label}: mAP50 vs Num Bits",
-              os.path.join(out_dir, "map50_tradeoff.png"))
-
-    make_plot(bits_arr, map5095_arr, map5095_eff, best_map5095_bit,
-              map5095_eff[np.argmax(map5095_eff)],
-              "mAP50-95", f"YOLO11n {label}: mAP50-95 vs Num Bits",
-              os.path.join(out_dir, "map5095_tradeoff.png"))
-
-    # Inference time plot (only if data available)
-    if not np.all(np.isnan(inference_arr)):
-        plot_inference(bits_arr, inference_arr,
-                       os.path.join(out_dir, "inference_tradeoff.png"), label)
-
-    # Combined overview: mAP50, F1, inference on one figure
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    fig.suptitle(f"YOLO11n {label}: Overview", fontsize=10, fontweight='bold')
-
-    axes[0].plot(bits_arr, map50_arr, 'o-', color='black', linewidth=2, markersize=4)
-    axes[0].axvline(x=best_map50_bit, color='red', linestyle='--', linewidth=1, label=f'Peak eff @ {best_map50_bit}-bit')
-    axes[0].set_xlabel("Num Bits", fontsize=10)
-    axes[0].set_ylabel("mAP50", fontsize=10)
-    axes[0].set_title("mAP50 vs Num Bits", fontsize=10)
-    axes[0].grid(True, alpha=0.3)
-    axes[0].set_xticks(bits_arr[::2])
-    axes[0].invert_xaxis()
-    axes[0].legend(fontsize=8)
-
-    axes[1].plot(bits_arr, f1_arr, 'o-', color='black', linewidth=2, markersize=4)
-    axes[1].axvline(x=best_f1_bit, color='red', linestyle='--', linewidth=1, label=f'Peak eff @ {best_f1_bit}-bit')
-    axes[1].set_xlabel("Num Bits", fontsize=10)
-    axes[1].set_ylabel("F1 Score", fontsize=10)
-    axes[1].set_title("F1 vs Num Bits", fontsize=10)
-    axes[1].grid(True, alpha=0.3)
-    axes[1].set_xticks(bits_arr[::2])
-    axes[1].invert_xaxis()
-    axes[1].legend(fontsize=8)
-
-    if not np.all(np.isnan(inference_arr)):
-        axes[2].plot(bits_arr, inference_arr, 'o-', color='black', linewidth=2, markersize=4)
-        axes[2].set_xlabel("Num Bits", fontsize=10)
-        axes[2].set_ylabel("Inference Time (ms)", fontsize=10)
-        axes[2].set_title("Inference Time vs Num Bits", fontsize=10)
-        axes[2].grid(True, alpha=0.3)
-        axes[2].set_xticks(bits_arr[::2])
-        axes[2].invert_xaxis()
-
-    plt.tight_layout()
-    plt.savefig(os.path.join(out_dir, "overview.png"), dpi=150, bbox_inches='tight')
-    plt.close()
-    print(f"  Saved: overview.png")
+    ax.axhline(y=0, color="black", linewidth=1.5, linestyle="-")
+    if bottom is not None:
+        ax.set_ylim(bottom=bottom)
+    if log_scale:
+        ax.set_yscale("log")
 
 
-# --- Run ---
-for quant_type in ["symmetric", "asymmetric"]:
-    quant_dir = os.path.join(base_dir, quant_type)
-    print(f"\nParsing {quant_type}...")
-    data = parse_logs(quant_dir)
-    if data:
-        plot_metrics(data, label=quant_type.capitalize(), out_dir=quant_dir)
-    else:
-        print(f"  No data found for {quant_type}")
+# -------------------------------------------------------------------
+# Plot functions
+# -------------------------------------------------------------------
 
-print("\nDone.")
+def plot_metric(results: dict, metric: str, ylabel: str):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    methods = sorted(results.keys())
+    colors = plt.colormaps["tab10"](np.linspace(0, 1, len(methods)))
+
+    for color, method in zip(colors, methods):
+        for model_name, bit_data in results[method].items():
+            bits_sorted = sorted(bit_data.keys())
+            values = [bit_data[b].get(metric) for b in bits_sorted]
+            valid = [(b, v) for b, v in zip(bits_sorted, values) if v is not None]
+            if not valid:
+                continue
+            xs, ys = zip(*valid)
+            ax.plot(xs, ys, marker="o", markersize=3,
+                    label=f"{method} / {model_name}", color=color)
+
+            log_path = bit_data[bits_sorted[0]]["log_path"]
+            data_dir = log_path.parent.parent / "data"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            np.savetxt(
+                data_dir / f"{metric}.csv",
+                np.array(list(zip(xs, ys))),
+                delimiter=",",
+                header="bits,value",
+                comments=""
+            )
+
+    _setup_ax(ax, "Bit-width", ylabel, f"{ylabel} vs Bit-width")
+
+    out = OUTPUT_DIR / f"{metric}.png"
+    fig.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {out}")
+
+
+def plot_metric_delta(results: dict, metric: str, ylabel: str):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    methods = sorted(results.keys())
+    colors = plt.colormaps["tab10"](np.linspace(0, 1, len(methods)))
+
+    for color, method in zip(colors, methods):
+        for model_name, bit_data in results[method].items():
+            bits_sorted = sorted(bit_data.keys(), reverse=True)
+            values = [bit_data[b].get(metric) for b in bits_sorted]
+            valid = [(b, v) for b, v in zip(bits_sorted, values) if v is not None]
+            if len(valid) < 2:
+                continue
+
+            xs = [valid[i + 1][0] for i in range(len(valid) - 1)]
+            ys = [valid[i][1] - valid[i + 1][1] for i in range(len(valid) - 1)]
+
+            ax.plot(xs, ys, marker="o", markersize=3,
+                    label=f"{method} / {model_name}", color=color)
+
+            log_path = bit_data[bits_sorted[-1]]["log_path"]
+            data_dir = log_path.parent.parent / "data"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            np.savetxt(
+                data_dir / f"{metric}_delta.csv",
+                np.array(list(zip(xs, ys))),
+                delimiter=",",
+                header="bits,delta",
+                comments=""
+            )
+
+    _setup_ax(ax, "Bit-width (lower of pair)", f"Δ {ylabel}",
+              f"Δ {ylabel} per Bit Step", bottom=None)
+
+    out = OUTPUT_DIR / f"{metric}_delta.png"
+    fig.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {out}")
+
+
+def plot_quant_error(errors: dict):
+    if not errors:
+        print("No quantization error data to plot.")
+        return
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    methods = sorted(errors.keys())
+    colors = plt.colormaps["tab10"](np.linspace(0, 1, len(methods)))
+    has_data = False
+
+    for color, method in zip(colors, methods):
+        for model_name, bit_data in errors[method].items():
+            bits_sorted = sorted(bit_data.keys())
+            values = [bit_data[b] for b in bits_sorted]
+            if not any(v > 0 for v in values):
+                continue
+            has_data = True
+            ax.plot(bits_sorted, values, marker="o", markersize=3,
+                    label=f"{method} / {model_name}", color=color)
+
+            data_dir = RUNS_ROOT / method / "det" / model_name / "data"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            np.savetxt(
+                data_dir / "quantization_error.csv",
+                np.array(list(zip(bits_sorted, values))),
+                delimiter=",",
+                header="bits,pct_error",
+                comments=""
+            )
+
+    if not has_data:
+        print("No positive quantization error values to plot.")
+        plt.close(fig)
+        return
+
+    _setup_ax(ax, "Bit-width", "Mean Absolute Quantization Error (%)",
+              "Quantization Error vs Bit-width", log_scale=True)
+
+    out = OUTPUT_DIR / "quantization_error.png"
+    fig.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {out}")
+
+
+# -------------------------------------------------------------------
+# Main
+# -------------------------------------------------------------------
+
+METRICS = {
+    "mAP50":         "mAP@50",
+    "mAP50-95":      "mAP@50-95",
+    "F1":            "F1 Score",
+    "inference_ms":  "Inference Time (ms)",
+    "mAP50_per_bit": "mAP@50 / Bit-width",
+    "F1_per_bit":    "F1 / Bit-width",
+}
+
+DELTA_METRICS = {
+    "mAP50":    "mAP@50",
+    "mAP50-95": "mAP@50-95",
+    "F1":       "F1 Score",
+}
+
+if __name__ == "__main__":
+    print("Collecting validation results from logs...")
+    results = collect_results()
+
+    if not results:
+        print("No valid val.log files found. Check RUNS_ROOT path.")
+        sys.exit(1)
+
+    for metric, ylabel in METRICS.items():
+        plot_metric(results, metric, ylabel)
+
+    for metric, ylabel in DELTA_METRICS.items():
+        plot_metric_delta(results, metric, ylabel)
+
+    print("\nComputing quantization errors from .pt weights...")
+    errors = collect_quant_errors()
+    plot_quant_error(errors)
+
+    print(f"\nAll plots saved to: {OUTPUT_DIR}")
