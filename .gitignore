@@ -2,3 +2,4 @@ venv/
 datasets/
 models/
 quantized_models/
+plots/data/
