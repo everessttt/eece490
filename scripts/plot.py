@@ -67,8 +67,8 @@ METRICS = {
     "mAP50-95":         "mAP@50-95",
     "F1":               "F1 Score",
     "inference_ms":     "Inference Time (ms)",
-    "mAP50_per_bit":    "mAP@50 / Bit-width",
-    "F1_per_bit":       "F1 / Bit-width"
+    "mAP50_per_bit":    "mAP@50 per Num Bits",
+    "F1_per_bit":       "F1 per Num Bits"
 }
 DELTA_METRICS   = {"mAP50": "mAP@50", "mAP50-95": "mAP@50-95", "F1": "F1 Score"}
 FAMILY_METRICS  = {"mAP50": "mAP@50", "mAP50-95": "mAP@50-95", "F1": "F1 Score"}
@@ -91,8 +91,8 @@ def _bit_idx(bits: int) -> int:
 
 @dataclass
 class Series:
-    label: str
-    color: str
+    label:  str
+    color:  str
     x_data: np.ndarray
     y_data: np.ndarray
 
@@ -205,8 +205,8 @@ def build_metric_by_task(
     method: str, save_root: Path,
 ) -> PlotData:
     pd = PlotData.for_sizes(
-        "Bit-width", ylabel,
-        f"{ylabel} vs Bit-width — {method} ({task})",
+        "Num Bits", ylabel,
+        f"{ylabel} vs Num Bits <- {method} ({task})",
         save_root / metric / method / task, "bits", metric,
     )
     for model_name, bit_data in method_data.items():
@@ -223,7 +223,7 @@ def build_metric_compare_tasks(
     method_data: dict, size: str, metric: str, ylabel: str,
     method: str, save_root: Path,
 ) -> PlotData:
-    pd = PlotData.for_tasks("Bit-width", ylabel, f"{ylabel} vs Bit-width — {method} yolo11{size} (all tasks)", save_root / metric / method / "compare_tasks" / size, "bits", metric)
+    pd = PlotData.for_tasks("Num Bits", ylabel, f"{ylabel} vs Num Bits ({method}) (yolo11{size}) (all tasks)", save_root / metric / method / "compare_tasks" / size, "bits", metric)
     for model_name, bit_data in method_data.items():
         if get_size(model_name) != size:
             continue
@@ -242,7 +242,7 @@ def build_delta_by_task(
     method_data: dict, task: str, metric: str, ylabel: str,
     method: str, save_root: Path,
 ) -> PlotData:
-    pd = PlotData.for_sizes("Bit-width (lower of pair)", f"Δ {ylabel}", f"Δ {ylabel} per Bit Step — {method} ({task})", save_root / f"{metric}_delta" / method / task, "bits", f"delta_{metric}")
+    pd = PlotData.for_sizes("Num Bits (lower of pair)", f"Δ {ylabel}", f"Δ {ylabel} per Num Bits ({method}) ({task})", save_root / f"{metric}_delta" / method / task, "bits", f"delta_{metric}")
     for model_name, bit_data in method_data.items():
         if get_task(model_name) != task:
             continue
@@ -256,7 +256,7 @@ def build_delta_compare_tasks(
     method_data: dict, size: str, metric: str, ylabel: str,
     method: str, save_root: Path,
 ) -> PlotData:
-    pd = PlotData.for_tasks("Bit-width (lower of pair)", f"Δ {ylabel}", f"Δ {ylabel} per Bit Step — {method} yolo11{size} (all tasks)", save_root / f"{metric}_delta" / method / "compare_tasks" / size, "bits", f"delta_{metric}")
+    pd = PlotData.for_tasks("Num Bits (lower of pair)", f"Δ {ylabel}", f"Δ {ylabel} per Num Bits ({method}) (yolo11{size}) (all tasks)", save_root / f"{metric}_delta" / method / "compare_tasks" / size, "bits", f"delta_{metric}")
     for model_name, bit_data in method_data.items():
         if get_size(model_name) != size:
             continue
@@ -266,24 +266,24 @@ def build_delta_compare_tasks(
                 pd.set(task, _bit_idx(lo_bits), lo_bits, delta)
     return pd.build()
 
-
 def build_delta_compare_methods(
     results: dict, model_name: str, metric: str, ylabel: str,
     save_root: Path,
 ) -> PlotData:
     methods = sorted(results.keys())
-    pd = PlotData.for_methods(methods, "Bit-width (lower of pair)", f"Δ {ylabel}", f"Δ {ylabel} per Bit Step — {model_name} (all methods)", save_root / f"{metric}_delta" / model_name, "bits", f"delta_{metric}")
+    pd = PlotData.for_methods(methods, "Num Bits (lower of pair)", f"Δ {ylabel}", f"Δ {ylabel} per Num Bits ({model_name}) (all methods)", save_root / f"{metric}_delta" / model_name, "bits", f"delta_{metric}")
     for method in methods:
         bit_data = results[method].get(model_name, {})
         for lo_bits, delta in _delta_pairs(bit_data, metric):
             if 2 <= lo_bits <= 32:
                 pd.set(method, _bit_idx(lo_bits), lo_bits, delta)
     return pd.build()
+
 def build_family_by_task(
     method_data: dict, task: str, metric: str, ylabel: str,
     method: str, save_root: Path,
 ) -> PlotData:
-    pd = PlotData.for_sizes("Parameters × Bit-width (effective bit cost)", ylabel, f"{ylabel} vs Effective Bit Cost — {method} ({task})", save_root / f"family_{metric}" / method / task, "effective_bits", metric,)
+    pd = PlotData.for_sizes("Parameters × Num Bits (Bit Efficiency)", ylabel, f"{ylabel} vs Bit Efficiency ({method}) ({task})", save_root / f"family_{metric}" / method / task, "effective_bits", metric,)
     for model_name, bit_data in method_data.items():
         if get_task(model_name) != task:
             continue
@@ -301,7 +301,7 @@ def build_family_compare_tasks(
     method_data: dict, size: str, metric: str, ylabel: str,
     method: str, save_root: Path,
 ) -> PlotData:
-    pd = PlotData.for_tasks("Parameters × Bit-width (effective bit cost)", ylabel, f"{ylabel} vs Effective Bit Cost — {method} yolo11{size} (all tasks)", save_root / f"family_{metric}" / method / "compare_tasks" / size, "effective_bits", metric)
+    pd = PlotData.for_tasks("Parameters × Num Bits (effective bit cost)", ylabel, f"{ylabel} vs Effective Bit Cost ({method}) (yolo11{size}) (all tasks)", save_root / f"family_{metric}" / method / "compare_tasks" / size, "effective_bits", metric)
     for model_name, bit_data in method_data.items():
         if get_size(model_name) != size:
             continue
@@ -320,7 +320,7 @@ def build_metric_compare_methods(
     save_root: Path,
 ) -> PlotData:
     methods = sorted(results.keys())
-    pd = PlotData.for_methods(methods, "Bit-width", ylabel, f"{ylabel} vs Bit-width — {model_name} (all methods)", save_root / metric / model_name, "bits", metric)
+    pd = PlotData.for_methods(methods, "Num Bits", ylabel, f"{ylabel} vs Num Bits ({model_name}) (all methods)", save_root / metric / model_name, "bits", metric)
     for method in methods:
         bit_data = results[method].get(model_name, {})
         for bits, data in bit_data.items():
@@ -337,7 +337,7 @@ def build_family_compare_methods(
     if params is None:
         return PlotData("", "", "", save_root).build()
     methods = sorted(results.keys())
-    pd = PlotData.for_methods(methods, "Parameters × Bit-width (effective bit cost)", ylabel, f"{ylabel} vs Effective Bit Cost — {model_name} (all methods)", save_root / f"family_{metric}" / model_name, "effective_bits", metric)
+    pd = PlotData.for_methods(methods, "Parameters × Num Bits (Bit Efficiency)", ylabel, f"{ylabel} vs Effective Bit Cost ({model_name}) (all methods)", save_root / f"family_{metric}" / model_name, "effective_bits", metric)
     for method in methods:
         bit_data = results[method].get(model_name, {})
         for bits, data in bit_data.items():
@@ -349,7 +349,7 @@ def build_family_compare_methods(
 def build_quant_error_by_method(
     method_data: dict, method: str, save_root: Path,
 ) -> PlotData:
-    pd = PlotData.for_sizes("Bit-width", "Mean Absolute Quantization Error (%)", f"Quantization Error vs Bit-width — {method}", save_root / "quantization_error" / method, "bits", "pct_error")
+    pd = PlotData.for_sizes("Num Bits", "Mean Absolute Quantization Error (%)", f"Quantization Error vs Num Bits ({method})", save_root / "quantization_error" / method, "bits", "percent_error")
     for model_name, bit_data in method_data.items():
         sz = get_size(model_name)
         for bits, err in bit_data.items():
@@ -425,12 +425,11 @@ def collect_quant_errors() -> dict:
         model_name = pt_path.stem
         print(f"Computing quantization errors for {model_name}...")
         for quant_fn in quantization_methods:
-            method   = quant_fn.__name__
+            method = quant_fn.__name__
             max_bits = 8 if method == "PoTPTQ" else 32
             for bits in range(2, max_bits + 1):
                 err = compute_quant_error(pt_path, quant_fn, bits)
                 errors.setdefault(method, {}).setdefault(model_name, {})[bits] = err
-        print()
     return errors
 
 #---plot---
@@ -484,18 +483,18 @@ def plot_family(results: dict):
 def plot_compare_methods(results: dict, model_name: str = "yolo11n"):
     for metric, ylabel in METRICS.items():
         pd = build_metric_compare_methods(results, model_name, metric, ylabel, DATA_ROOT)
-        make_plot(pd, PLOT_ROOT / metric / "compare_methods" / f"{model_name}.png", **_metric_plot_kwargs())
+        make_plot(pd, PLOT_ROOT / metric / f"{model_name}.png", **_metric_plot_kwargs())
  
 def plot_family_compare_methods(results: dict, model_name: str = "yolo11n"):
     for metric, ylabel in FAMILY_METRICS.items():
         pd = build_family_compare_methods(results, model_name, metric, ylabel, DATA_ROOT)
-        make_plot(pd, FAMILY_ROOT / metric / "compare_methods" / f"{model_name}.png", **_family_plot_kwargs())
-
+        make_plot(pd, FAMILY_ROOT / metric / f"{model_name}.png", **_family_plot_kwargs())
 
 def plot_delta_compare_methods(results: dict, model_name: str = "yolo11n"):
     for metric, ylabel in DELTA_METRICS.items():
         pd = build_delta_compare_methods(results, model_name, metric, ylabel, DATA_ROOT)
         make_plot(pd, PLOT_ROOT / f"{metric}_delta" / f"{model_name}.png", **_delta_plot_kwargs())
+
 def plot_quant_errors(errors: dict):
     if not errors:
         return
@@ -520,7 +519,6 @@ if __name__ == "__main__":
     plot_delta_compare_methods(results)
     plot_family_compare_methods(results)
 
-    print("\nComputing quantization errors from .pt weights...")
     plot_quant_errors(collect_quant_errors())
 
     print(f"\nAll plots saved to: {OUTPUT_DIR}")
