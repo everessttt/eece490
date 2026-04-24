@@ -206,7 +206,7 @@ def build_metric_by_task(
 ) -> PlotData:
     pd = PlotData.for_sizes(
         "Num Bits", ylabel,
-        f"{ylabel} vs Num Bits <- {method} ({task})",
+        f"{ylabel} vs Num Bits ({method}) ({task})",
         save_root / metric / method / task, "bits", metric,
     )
     for model_name, bit_data in method_data.items():
@@ -283,7 +283,7 @@ def build_family_by_task(
     method_data: dict, task: str, metric: str, ylabel: str,
     method: str, save_root: Path,
 ) -> PlotData:
-    pd = PlotData.for_sizes("Parameters × Num Bits (Bit Efficiency)", ylabel, f"{ylabel} vs Bit Efficiency ({method}) ({task})", save_root / f"family_{metric}" / method / task, "effective_bits", metric,)
+    pd = PlotData.for_sizes("Model Size (MB)", ylabel, f"{ylabel} vs Model Size ({method}) ({task})", save_root / f"family_{metric}" / method / task, "size_mb", metric,)
     for model_name, bit_data in method_data.items():
         if get_task(model_name) != task:
             continue
@@ -294,14 +294,14 @@ def build_family_by_task(
         for bits, data in bit_data.items():
             v = data.get(metric)
             if v is not None and 2 <= bits <= 32:
-                pd.set(sz, _bit_idx(bits), params * bits, v)
+                pd.set(sz, _bit_idx(bits), (params * bits) / (8 * 1024 * 1024), v)
     return pd.build()
 
 def build_family_compare_tasks(
     method_data: dict, size: str, metric: str, ylabel: str,
     method: str, save_root: Path,
 ) -> PlotData:
-    pd = PlotData.for_tasks("Parameters × Num Bits (effective bit cost)", ylabel, f"{ylabel} vs Effective Bit Cost ({method}) (yolo11{size}) (all tasks)", save_root / f"family_{metric}" / method / "compare_tasks" / size, "effective_bits", metric)
+    pd = PlotData.for_tasks("Model Size (MB)", ylabel, f"{ylabel} vs Model Size ({method}) (yolo11{size}) (all tasks)", save_root / f"family_{metric}" / method / "compare_tasks" / size, "size_mb", metric)
     for model_name, bit_data in method_data.items():
         if get_size(model_name) != size:
             continue
@@ -312,7 +312,7 @@ def build_family_compare_tasks(
         for bits, data in bit_data.items():
             v = data.get(metric)
             if v is not None and 2 <= bits <= 32:
-                pd.set(task, _bit_idx(bits), params * bits, v)
+                pd.set(task, _bit_idx(bits), (params * bits) / (8 * 1024 * 1024), v)
     return pd.build()
 
 def build_metric_compare_methods(
@@ -337,13 +337,13 @@ def build_family_compare_methods(
     if params is None:
         return PlotData("", "", "", save_root).build()
     methods = sorted(results.keys())
-    pd = PlotData.for_methods(methods, "Parameters × Num Bits (Bit Efficiency)", ylabel, f"{ylabel} vs Effective Bit Cost ({model_name}) (all methods)", save_root / f"family_{metric}" / model_name, "effective_bits", metric)
+    pd = PlotData.for_methods(methods, "Model Size (MB)", ylabel, f"{ylabel} vs Model Size ({model_name}) (all methods)", save_root / f"family_{metric}" / model_name, "size_mb", metric)
     for method in methods:
         bit_data = results[method].get(model_name, {})
         for bits, data in bit_data.items():
             v = data.get(metric)
             if v is not None and 2 <= bits <= 32:
-                pd.set(method, _bit_idx(bits), params * bits, v)
+                pd.set(method, _bit_idx(bits), (params * bits) / (8 * 1024 * 1024), v)
     return pd.build()
 
 def build_quant_error_by_method(
