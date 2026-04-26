@@ -1,5 +1,4 @@
 import torch
-from PoTPTQ import PoTPTQ
 
 # https://arxiv.org/pdf/2106.08295
 # https://arxiv.org/html/2507.11959v1
