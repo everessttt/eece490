@@ -1,0 +1,12 @@
+Ultralytics 8.4.41  Python-3.14.4 torch-2.11.0+cpu CPU (AMD Ryzen 5 7600X 6-Core Processor)
+Loading C:\github_projects\EECE490\quantized_models\power_of_two\det\yolo11s\yolo11s_20bit.onnx for ONNX Runtime inference...
+Using ONNX Runtime 1.25.0 with CPUExecutionProvider
+[34m[1mval: [0mFast image access  (ping: 0.00.0 ms, read: 450.8187.4 MB/s, size: 48.7 KB)
+[K[34m[1mval: [0mScanning C:\github_projects\models\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128 25.6Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 12% ━─────────── 1/8 21.0s/it 6.3s<2:27[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 2/8 14.4s/it 14.6s<1:26[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━──────── 3/8 11.6s/it 22.6s<58.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 4/8 10.3s/it 30.7s<41.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 62% ━━━━━━━───── 5/8 9.0s/it 37.6s<26.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 75% ━━━━━━━━━─── 6/8 7.9s/it 43.7s<15.7s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 88% ━━━━━━━━━━── 7/8 6.9s/it 49.2s<6.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 6.7s/it 53.7s
+                   all        128        929      0.724      0.691      0.749      0.574
+Speed: 5.2ms preprocess, 234.6ms inference, 0.0ms loss, 95.3ms postprocess per image
+Saving C:\github_projects\EECE490\runs\quantized_models\power_of_two\det\yolo11s\yolo11s_20bit\coco128\predictions.json...
+Results saved to [1mC:\github_projects\EECE490\runs\quantized_models\power_of_two\det\yolo11s\yolo11s_20bit\coco128[0m
+ Learn more at https://docs.ultralytics.com/modes/val
+[34m[1mVS Code:[0m view Ultralytics VS Code Extension  at https://docs.ultralytics.com/integrations/vscode

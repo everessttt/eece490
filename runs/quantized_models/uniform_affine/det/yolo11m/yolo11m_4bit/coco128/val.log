@@ -1,0 +1,16 @@
+Ultralytics 8.4.41  Python-3.14.4 torch-2.11.0+cpu CPU (AMD Ryzen 5 7600X 6-Core Processor)
+Loading C:\github_projects\EECE490\quantized_models\uniform_affine\det\yolo11m\yolo11m_4bit.onnx for ONNX Runtime inference...
+Using ONNX Runtime 1.25.0 with CPUExecutionProvider
+[34m[1mval: [0mFast image access  (ping: 0.00.0 ms, read: 376.0514.6 MB/s, size: 66.3 KB)
+[K[34m[1mval: [0mScanning C:\github_projects\models\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128 17.9Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 12% ━─────────── 1/8 49.9s/it 15.0s<5:50[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 2/8 39.4s/it 41.4s<3:57WARNING NMS time limit 2.800s exceeded
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━──────── 3/8 35.0s/it 1:09<2:55WARNING NMS time limit 2.800s exceeded
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 4/8 34.3s/it 1:42<2:17WARNING NMS time limit 2.800s exceeded
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 62% ━━━━━━━───── 5/8 30.8s/it 2:07<1:33WARNING NMS time limit 2.800s exceeded
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 75% ━━━━━━━━━─── 6/8 39.2s/it 3:53<1:18[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 88% ━━━━━━━━━━── 7/8 39.9s/it 4:35<39.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 38.3s/it 5:06
+                   all        128        929   0.000657     0.0104    0.00135   0.000475
+Speed: 31.5ms preprocess, 1739.2ms inference, 0.4ms loss, 383.0ms postprocess per image
+Saving C:\github_projects\EECE490\runs\quantized_models\uniform_affine\det\yolo11m\yolo11m_4bit\coco128\predictions.json...
+Results saved to [1mC:\github_projects\EECE490\runs\quantized_models\uniform_affine\det\yolo11m\yolo11m_4bit\coco128[0m
+ Learn more at https://docs.ultralytics.com/modes/val
+[34m[1mVS Code:[0m view Ultralytics VS Code Extension  at https://docs.ultralytics.com/integrations/vscode

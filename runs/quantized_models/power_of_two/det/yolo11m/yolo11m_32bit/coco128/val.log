@@ -1,0 +1,41 @@
+Ultralytics 8.4.41  Python-3.14.4 torch-2.11.0+cpu CPU (AMD Ryzen 5 7600X 6-Core Processor)
+Loading C:\github_projects\EECE490\quantized_models\power_of_two\det\yolo11m\yolo11m_32bit.onnx for ONNX Runtime inference...
+Using ONNX Runtime 1.25.0 with CPUExecutionProvider
+[34m[1mval: [0mFast image access  (ping: 0.00.0 ms, read: 777.6358.8 MB/s, size: 46.2 KB)
+[K[34m[1mval: [0mScanning C:\github_projects\models\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128 31.6Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 12% ━─────────── 1/8 46.6s/it 14.0s<5:26[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 2/8 45.0s/it 55.8s<4:30[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━──────── 3/8 46.3s/it 1:45<3:51[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 4/8 48.2s/it 2:39<3:13WARNING NMS time limit 2.800s exceeded
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 4/8 68.8s/it 3:28<4:35
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\github_projects\EECE490\.venv\Scripts\yolo.exe\__main__.py", line 5, in <module>
+    sys.exit(entrypoint())
+             ~~~~~~~~~~^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\cfg\__init__.py", line 1006, in entrypoint
+    getattr(model, mode)(**overrides)  # default args from model
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\engine\model.py", line 615, in val
+    validator(model=self.model)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\engine\validator.py", line 233, in __call__
+    self.update_metrics(preds, batch)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\models\yolo\detect\val.py", line 209, in update_metrics
+    self.save_one_txt(
+    ~~~~~~~~~~~~~~~~~^
+        predn_scaled,
+        ^^^^^^^^^^^^^
+    ...<2 lines>...
+        self.save_dir / "labels" / f"{Path(pbatch['im_file']).stem}.txt",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\models\yolo\detect\val.py", line 401, in save_one_txt
+    ).save_txt(file, save_conf=save_conf)
+      ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\engine\results.py", line 712, in save_txt
+    with open(txt_file, "a", encoding="utf-8") as f:
+         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 22] Invalid argument: 'C:\\github_projects\\EECE490\\runs\\quantized_models\\power_of_two\\det\\yolo11m\\yolo11m_32bit\\coco128\\labels\\000000000605.txt'

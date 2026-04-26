@@ -1,0 +1,27 @@
+Ultralytics 8.4.41  Python-3.14.4 torch-2.11.0+cpu CPU (AMD Ryzen 5 7600X 6-Core Processor)
+Loading C:\github_projects\EECE490\quantized_models\uniform_affine\pose\yolo11l-pose\yolo11l-pose_11bit.onnx for ONNX Runtime inference...
+Using ONNX Runtime 1.25.0 with CPUExecutionProvider
+[34m[1mval: [0mFast image access  (ping: 0.10.2 ms, read: 52.821.8 MB/s, size: 51.6 KB)
+[K[34m[1mval: [0mScanning C:\github_projects\models\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128 24.4Mit/s 0.0s
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\github_projects\EECE490\.venv\Scripts\yolo.exe\__main__.py", line 5, in <module>
+    sys.exit(entrypoint())
+             ~~~~~~~~~~^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\cfg\__init__.py", line 1006, in entrypoint
+    getattr(model, mode)(**overrides)  # default args from model
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\engine\model.py", line 615, in val
+    validator(model=self.model)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\engine\validator.py", line 211, in __call__
+    self.init_metrics(unwrap_model(model))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\models\yolo\pose\val.py", line 102, in init_metrics
+    self.kpt_shape = self.data["kpt_shape"]
+                     ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'kpt_shape'
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95)     Pose(P          R      mAP50  mAP50-95): 0% ──────────── 0/8  0.2s

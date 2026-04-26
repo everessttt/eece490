@@ -1,0 +1,45 @@
+Ultralytics 8.4.41  Python-3.14.4 torch-2.11.0+cpu CPU (AMD Ryzen 5 7600X 6-Core Processor)
+Loading C:\github_projects\EECE490\quantized_models\uniform_affine\seg\yolo11s-seg\yolo11s-seg_32bit.onnx for ONNX Runtime inference...
+Using ONNX Runtime 1.25.0 with CPUExecutionProvider
+[34m[1mval: [0mFast image access  (ping: 0.00.0 ms, read: 531.4360.6 MB/s, size: 54.4 KB)
+[K[34m[1mval: [0mScanning C:\github_projects\models\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128 28.3Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95)     Mask(P          R      mAP50  mAP50-95): 0% ──────────── 0/8  0.0s
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\github_projects\EECE490\.venv\Scripts\yolo.exe\__main__.py", line 5, in <module>
+    sys.exit(entrypoint())
+             ~~~~~~~~~~^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\cfg\__init__.py", line 1006, in entrypoint
+    getattr(model, mode)(**overrides)  # default args from model
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\engine\model.py", line 615, in val
+    validator(model=self.model)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\engine\validator.py", line 213, in __call__
+    for batch_i, batch in enumerate(bar):
+                          ~~~~~~~~~^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\utils\tqdm.py", line 350, in __iter__
+    for item in self.iterable:
+                ^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\data\build.py", line 76, in __iter__
+    yield next(self.iterator)
+          ~~~~^^^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 741, in __next__
+    data = self._next_data()
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 801, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\torch\utils\data\_utils\fetch.py", line 54, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+            ~~~~~~~~~~~~^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\data\base.py", line 380, in __getitem__
+    return self.transforms(self.get_image_and_label(index))
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\data\augment.py", line 187, in __call__
+    data = t(data)
+  File "c:\github_projects\EECE490\.venv\Lib\site-packages\ultralytics\data\augment.py", line 2064, in __call__
+    sem_masks = cls_tensor[masks[0].long() - 1]  # (H, W) from (1, H, W) instance indices
+                ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+IndexError: index is out of bounds for dimension with size 0
