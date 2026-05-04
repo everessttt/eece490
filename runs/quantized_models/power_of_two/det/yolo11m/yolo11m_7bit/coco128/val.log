@@ -1,14 +1,11 @@
 Ultralytics 8.4.41  Python-3.14.4 torch-2.11.0+cpu CPU (AMD Ryzen 5 7600X 6-Core Processor)
 Loading C:\github_projects\EECE490\quantized_models\power_of_two\det\yolo11m\yolo11m_7bit.onnx for ONNX Runtime inference...
 Using ONNX Runtime 1.25.0 with CPUExecutionProvider
-[34m[1mval: [0mFast image access  (ping: 0.00.0 ms, read: 16.227.4 MB/s, size: 64.6 KB)
-[K[34m[1mval: [0mScanning C:\github_projects\models\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128 14.5Mit/s 0.0s
-[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 12% ━─────────── 1/8 96.8s/it 29.0s<11:18WARNING NMS time limit 2.800s exceeded
-[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 2/8 56.3s/it 57.5s<5:38[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━──────── 3/8 55.4s/it 1:51<4:37WARNING NMS time limit 2.800s exceeded
-[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 4/8 54.3s/it 2:43<3:37WARNING NMS time limit 2.800s exceeded
-[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 62% ━━━━━━━───── 5/8 41.6s/it 3:10<2:05[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 75% ━━━━━━━━━─── 6/8 42.7s/it 3:55<1:25[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 88% ━━━━━━━━━━── 7/8 22.8s/it 4:06<22.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 31.8s/it 4:14
-                   all        128        929      0.687      0.561      0.617       0.47
-Speed: 17.7ms preprocess, 1517.4ms inference, 0.0ms loss, 193.6ms postprocess per image
+[34m[1mval: [0mFast image access  (ping: 0.00.0 ms, read: 847.5414.5 MB/s, size: 56.3 KB)
+[K[34m[1mval: [0mScanning C:\github_projects\models\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128 44.7Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 12% ━─────────── 1/8 7.3s/it 2.2s<51.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 2/8 4.5s/it 4.5s<26.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━──────── 3/8 3.7s/it 7.2s<18.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 4/8 3.3s/it 9.9s<13.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 62% ━━━━━━━───── 5/8 3.1s/it 12.6s<9.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 75% ━━━━━━━━━─── 6/8 3.2s/it 15.9s<6.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 88% ━━━━━━━━━━── 7/8 3.1s/it 19.0s<3.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 2.7s/it 21.5s
+                   all        128        929       0.66      0.602      0.673      0.511
+Speed: 0.6ms preprocess, 151.7ms inference, 0.0ms loss, 0.7ms postprocess per image
 Saving C:\github_projects\EECE490\runs\quantized_models\power_of_two\det\yolo11m\yolo11m_7bit\coco128\predictions.json...
 Results saved to [1mC:\github_projects\EECE490\runs\quantized_models\power_of_two\det\yolo11m\yolo11m_7bit\coco128[0m
  Learn more at https://docs.ultralytics.com/modes/val

@@ -1,18 +1,16 @@
 from ultralytics import YOLO
 from pathlib import Path
-import torchvision
-import torch
 
 import config
 
-for task in ["det", "seg", "pose"]:  # ["det", "seg", "pose"]
-    task_dir = Path(config.ROOT) / "models" / task
-    task_dir.mkdir(parents=True, exist_ok=True)
+for task in ["det", "seg", "pose"]:
+    for arch in ["yolo11", "yolo26"]:
+        task_dir = Path(config.ROOT) / "models" / arch / task
+        task_dir.mkdir(parents=True, exist_ok=True)
 
-    for size in ["n", "s", "m", "l", "x"]: # ["n", "s", "m", "l", "x"]
-        pt_name = f"yolo11{size}.pt" if task == "det" else f"yolo11{size}-{task}.pt"
-        pt_path = task_dir / pt_name
-        model = YOLO(str(pt_path))
+        for size in ["n", "s", "m", "l", "x"]:
+            pt_name = f"{arch}{size}.pt" if task == "det" else f"{arch}{size}-{task}.pt"
+            model = YOLO(str(task_dir / pt_name))
 
 # Faster R-CNN
 # det_dir = Path(config.ROOT) / "models" / "det"

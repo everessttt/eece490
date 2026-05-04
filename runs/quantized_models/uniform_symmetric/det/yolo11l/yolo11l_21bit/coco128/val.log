@@ -1,11 +1,12 @@
 Ultralytics 8.4.41  Python-3.14.4 torch-2.11.0+cpu CPU (AMD Ryzen 5 7600X 6-Core Processor)
 Loading C:\github_projects\EECE490\quantized_models\uniform_symmetric\det\yolo11l\yolo11l_21bit.onnx for ONNX Runtime inference...
 Using ONNX Runtime 1.25.0 with CPUExecutionProvider
-[34m[1mval: [0mFast image access  (ping: 0.00.0 ms, read: 96.631.1 MB/s, size: 46.9 KB)
-[K[34m[1mval: [0mScanning C:\github_projects\models\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128 9.9Mit/s 0.0s
-[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 12% ━─────────── 1/8 232.7s/it 1:10<27:09[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 2/8 66.2s/it 1:35<6:37[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━──────── 3/8 52.0s/it 2:09<4:20[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 4/8 43.2s/it 2:40<2:53WARNING NMS time limit 2.800s exceeded
-[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 62% ━━━━━━━───── 5/8 44.7s/it 3:29<2:14[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 75% ━━━━━━━━━─── 6/8 43.8s/it 4:11<1:28forrtl: error (200): program aborting due to window-CLOSE event
-Image              PC                Routine            Line        Source             
-KERNELBASE.dll     00007FFBE736A3CD  Unknown               Unknown  Unknown
-KERNEL32.DLL       00007FFBE97EE8D7  Unknown               Unknown  Unknown
-ntdll.dll          00007FFBEA82C3FC  Unknown               Unknown  Unknown
+[34m[1mval: [0mFast image access  (ping: 0.00.0 ms, read: 1126.2257.0 MB/s, size: 64.4 KB)
+[K[34m[1mval: [0mScanning C:\github_projects\models\datasets\coco128\labels\train2017.cache... 126 images, 2 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 128/128 28.3Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 12% ━─────────── 1/8 7.4s/it 2.2s<51.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 2/8 4.4s/it 4.5s<26.7s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━──────── 3/8 3.6s/it 7.0s<18.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 4/8 3.2s/it 9.6s<12.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 62% ━━━━━━━───── 5/8 3.0s/it 12.1s<8.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 75% ━━━━━━━━━─── 6/8 3.1s/it 15.5s<6.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 88% ━━━━━━━━━━── 7/8 3.0s/it 18.4s<3.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 2.6s/it 20.8s
+                   all        128        929      0.796      0.711      0.799      0.632
+Speed: 0.6ms preprocess, 150.4ms inference, 0.0ms loss, 0.5ms postprocess per image
+Saving C:\github_projects\EECE490\runs\quantized_models\uniform_symmetric\det\yolo11l\yolo11l_21bit\coco128\predictions.json...
+Results saved to [1mC:\github_projects\EECE490\runs\quantized_models\uniform_symmetric\det\yolo11l\yolo11l_21bit\coco128[0m
+ Learn more at https://docs.ultralytics.com/modes/val
+[34m[1mVS Code:[0m view Ultralytics VS Code Extension  at https://docs.ultralytics.com/integrations/vscode

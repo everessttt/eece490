@@ -81,7 +81,9 @@ def get_task(model_name: str) -> str:
     return "det"
 
 def get_size(model_name: str) -> str:
-    return model_name.replace("yolo11", "").split("-")[0]
+    import re
+    m = re.search(r"yolo\d+([nsmlx])", model_name)
+    return m.group(1) if m else model_name.split("-")[0]
 
 def get_params(model_name: str) -> Optional[int]:
     return MODEL_PARAMS.get(model_name)

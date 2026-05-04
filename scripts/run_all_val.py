@@ -50,13 +50,13 @@ def run_val(model: Path) -> str | None:
         with open(out_dir / "val.log", "w") as log:
             subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, text=True)
 
-    if task == "detect" and model_size == "n":
-        out_dir_coco = RUNS_ROOT / rel_dir / model_name / "coco"
-        if not (out_dir_coco / "val.log").exists():
-            out_dir_coco.mkdir(parents=True, exist_ok=True)
-            cmd_coco = ["yolo", "val", f"model={model}", "data=coco.yaml", f"task={task}", "name=coco", f"project={RUNS_ROOT / rel_dir / model_name}", "half=False", "save_json=True", "save_conf=True", "save_txt=True", "plots=True", "verbose=False", "exist_ok=True"]
-            with open(out_dir_coco / "val.log", "w") as log:
-                subprocess.run(cmd_coco, stdout=log, stderr=subprocess.STDOUT, text=True)
+    # if task == "detect" and model_size == "n":
+    #     out_dir_coco = RUNS_ROOT / rel_dir / model_name / "coco"
+    #     if not (out_dir_coco / "val.log").exists():
+    #         out_dir_coco.mkdir(parents=True, exist_ok=True)
+    #         cmd_coco = ["yolo", "val", f"model={model}", "data=coco.yaml", f"task={task}", "name=coco", f"project={RUNS_ROOT / rel_dir / model_name}", "half=False", "save_json=True", "save_conf=True", "save_txt=True", "plots=True", "verbose=False", "exist_ok=True"]
+    #         with open(out_dir_coco / "val.log", "w") as log:
+    #             subprocess.run(cmd_coco, stdout=log, stderr=subprocess.STDOUT, text=True)
 
     return str(rel_path)
 

@@ -15,7 +15,6 @@ def quantize_pytorch_model(yolo_model, quantization_fn, num_bits: int):
                 continue
             param.copy_(quantization_fn(param.data, num_bits=num_bits))
 
-
 if __name__ == "__main__":
     model_root = Path(config.ROOT) / "models"
     output_root = Path(config.ROOT) / "quantized_models"
