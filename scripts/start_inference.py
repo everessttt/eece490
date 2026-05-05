@@ -1,4 +1,7 @@
+import argparse
 import cv2
+import json
+import subprocess
 import time
 import threading
 import numpy as np
@@ -11,8 +14,13 @@ WIN_NAME = Path(MODEL_PATH).name
 CONF_THRESHOLD = 0.5
 NMS_THRESHOLD = 0.5
 TARGET_CAPTURE_FPS = 30
-INIT_RESCALE = 4
+INIT_WIN_W = 1280
+INIT_WIN_H = 720
+RENDER_FPS_CAP = 60
+RENDER_FRAME_TIME = 1.0 / RENDER_FPS_CAP
 FONT = cv2.FONT_HERSHEY_SIMPLEX
+CAPTURE_SOURCE = "camera"
+CAMERA_INDEX = 0
 
 COCO_LABELS = [
     "person","bicycle","car","motorcycle","airplane","bus","train","truck","boat",
@@ -41,22 +49,50 @@ COLOUR_LUT = [assign_color(i) for i in range(max(len(COCO_LABELS), 128))]
 
 latest_capture: np.ndarray | None = None
 latest_result:  tuple | None = None
-running = True
+running = threading.Event()
+running.set()
 capture_lock = threading.Lock()
 result_lock = threading.Lock()
+
+
+def find_logitech_camera() -> int:
+    try:
+        result = subprocess.run(
+            [
+                "powershell", "-NoProfile", "-Command",
+                "Get-PnpDevice -Class Camera | Select-Object FriendlyName, Status | ConvertTo-Json"
+            ],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            devices = json.loads(result.stdout)
+            if isinstance(devices, dict):
+                devices = [devices]
+            for i, dev in enumerate(devices):
+                if "logitech" in dev.get("FriendlyName", "").lower() and dev.get("Status") == "OK":
+                    return i
+    except Exception:
+        pass
+
+    for idx in range(10):
+        cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
+        if cap.isOpened():
+            cap.release()
+            return idx
+
+    return 0
+
 
 def letterbox(img: np.ndarray, target: tuple[int, int] = (640, 640)):
     h, w   = img.shape[:2]
     th, tw = target
     scale  = min(tw / w, th / h)
     nw, nh = int(w * scale), int(h * scale)
-
     resized = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_LINEAR)
     canvas  = np.full((th, tw, 3), 114, dtype=np.uint8)
     dx = (tw - nw) // 2
     dy = (th - nh) // 2
     canvas[dy:dy + nh, dx:dx + nw] = resized
-
     return canvas, scale, dx, dy
 
 def preprocess(frame: np.ndarray, input_shape: tuple[int, ...]):
@@ -72,9 +108,8 @@ def postprocess(output: np.ndarray, frame_shape: tuple, scale: float, dx: int, d
         output = output.squeeze(0)
     pred = output.T if output.shape[0] < output.shape[1] else output
 
-    boxes_raw = pred[:, :4]
-    scores    = pred[:, 4:]
-
+    boxes_raw   = pred[:, :4]
+    scores      = pred[:, 4:]
     class_ids   = np.argmax(scores, axis=1)
     confidences = scores[np.arange(len(scores)), class_ids]
 
@@ -87,7 +122,6 @@ def postprocess(output: np.ndarray, frame_shape: tuple, scale: float, dx: int, d
     class_ids   = class_ids[mask]
 
     cx, cy, bw, bh = boxes_raw.T
-
     x1 = np.clip((cx - bw / 2 - dx) / scale, 0, w_img)
     y1 = np.clip((cy - bh / 2 - dy) / scale, 0, h_img)
     x2 = np.clip((cx + bw / 2 - dx) / scale, 0, w_img)
@@ -110,28 +144,47 @@ def postprocess(output: np.ndarray, frame_shape: tuple, scale: float, dx: int, d
     idxs = np.array(nms_result).flatten()
     return [(int(x1[i]), int(y1[i]), int(x2[i]), int(y2[i]), float(confidences[i]), int(class_ids[i])) for i in idxs]
 
+
 def capture_worker():
-    global latest_capture, running
+    global latest_capture
 
-    camera = dxcam.create(output_idx=0)
-    camera.start(target_fps=TARGET_CAPTURE_FPS, video_mode=True)
-    print("Capture thread started")
+    if CAPTURE_SOURCE == "desktop":
+        camera = dxcam.create(output_idx=0)
+        camera.start(target_fps=TARGET_CAPTURE_FPS, video_mode=True)
 
-    while running:
-        frame = camera.get_latest_frame()
-        if frame is None:
-            continue
+        while running.is_set():
+            frame = camera.get_latest_frame()
+            if frame is None:
+                continue
+            with capture_lock:
+                latest_capture = frame[:, :, ::-1].copy()
 
-        bgr = frame[:, :, ::-1].copy()
-        with capture_lock:
-            latest_capture = bgr
+        camera.stop()
 
-    camera.stop()
+    else:
+        cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
+        if not cap.isOpened():
+            running.clear()
+            return
+
+        cap.set(cv2.CAP_PROP_FPS, TARGET_CAPTURE_FPS)
+        print("camera inference started")
+
+        while running.is_set():
+            ret, frame = cap.read()
+            if not ret:
+                time.sleep(0.01)
+                continue
+            with capture_lock:
+                latest_capture = frame.copy()
+
+        cap.release()
+
 
 def inference_worker(session: ort.InferenceSession, input_name: str, input_shape: tuple[int, ...]):
-    global latest_result, running
+    global latest_result
 
-    while running:
+    while running.is_set():
         with capture_lock:
             snapshot = latest_capture
         if snapshot is None:
@@ -147,27 +200,26 @@ def inference_worker(session: ort.InferenceSession, input_name: str, input_shape
 
         raw_out = outputs[0]
         assert isinstance(raw_out, np.ndarray)
-        raw_out = raw_out.squeeze(0)
 
         detections = postprocess(raw_out, frame.shape, scale, dx, dy)
 
         with result_lock:
             latest_result = (frame, detections, infer_ms)
 
-def render_loop():
-    global running
 
+def render_loop():
     fps = 0.0
     prev = time.perf_counter()
     infer_ms = 0.0
     win_created = False
     detections: list = []
 
-    while running:
+    while running.is_set():
         with result_lock:
             data = latest_result
         with capture_lock:
             raw = latest_capture
+
         if raw is None:
             time.sleep(0.001)
             continue
@@ -180,9 +232,7 @@ def render_loop():
         for x1, y1, x2, y2, conf, cid in detections:
             colour = COLOUR_LUT[min(cid, len(COLOUR_LUT) - 1)]
             label  = f"{class_label(cid)}  {conf:.0%}"
-
             cv2.rectangle(frame, (x1, y1), (x2, y2), colour, 2)
-
             (tw, th), bl = cv2.getTextSize(label, FONT, 0.55, 1)
             ty = max(y1 - 4, th + bl + 2)
             cv2.rectangle(frame, (x1, ty - th - bl - 2), (x1 + tw + 6, ty + bl), colour, -1)
@@ -197,8 +247,7 @@ def render_loop():
 
         if not win_created:
             cv2.namedWindow(WIN_NAME, cv2.WINDOW_NORMAL)
-            cv2.resizeWindow(WIN_NAME, w, h)
-            cv2.resizeWindow(WIN_NAME, max(1, w // INIT_RESCALE), max(1, h // INIT_RESCALE))
+            cv2.resizeWindow(WIN_NAME, INIT_WIN_W, INIT_WIN_H)
             win_created = True
 
         rect = cv2.getWindowImageRect(WIN_NAME)
@@ -208,40 +257,61 @@ def render_loop():
 
         cv2.imshow(WIN_NAME, display)
 
-        if cv2.waitKey(1) & 0xFF in (27, ord("q"), ord("Q")):
-            running = False
+        key_wait = max(1, int((RENDER_FRAME_TIME - (time.perf_counter() - now)) * 1000))
+        if cv2.waitKey(key_wait) & 0xFF in (27, ord("q"), ord("Q")):
+            running.clear()
             break
 
     cv2.destroyAllWindows()
 
+
 def main():
+    global CAPTURE_SOURCE, CAMERA_INDEX
+
+    parser = argparse.ArgumentParser(description="YOLO ONNX real-time inference")
+    parser.add_argument("--source", choices=["camera", "desktop"], default="camera")
+    parser.add_argument("--camera-index", type=int, default=None)
+    args = parser.parse_args()
+
+    CAPTURE_SOURCE = args.source
+    CAMERA_INDEX = (
+        args.camera_index if args.camera_index is not None
+        else (find_logitech_camera() if CAPTURE_SOURCE == "camera" else 0)
+    )
+
     if not Path(MODEL_PATH).exists():
-        print(f"Error: Model not found: {MODEL_PATH}")
         return
 
     providers = []
-    available = ort.get_available_providers()
-    if "CUDAExecutionProvider" in available:
+    if "CUDAExecutionProvider" in ort.get_available_providers():
         providers.append("CUDAExecutionProvider")
     providers.append("CPUExecutionProvider")
 
     session = ort.InferenceSession(MODEL_PATH, providers=providers)
-    input_meta = session.get_inputs()[0]
-    input_name = input_meta.name
-    input_shape: tuple[int, ...] = tuple(d if isinstance(d, int) else (1 if i == 0 else 640) for i, d in enumerate(input_meta.shape))
+    input_meta  = session.get_inputs()[0]
+    input_name  = input_meta.name
+    input_shape: tuple[int, ...] = tuple(
+        d if isinstance(d, int) else (1 if i == 0 else 640)
+        for i, d in enumerate(input_meta.shape)
+    )
 
     assert len(input_shape) == 4
     assert input_shape[1] == 3
 
-    t_capture = threading.Thread(target=capture_worker, daemon=True)
+    t_capture   = threading.Thread(target=capture_worker, daemon=True)
     t_inference = threading.Thread(target=inference_worker, args=(session, input_name, input_shape), daemon=True)
     t_capture.start()
     t_inference.start()
 
     render_loop()
 
+    running.clear()
+    t_capture.join(timeout=3)
+    t_inference.join(timeout=3)
+
+
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        pass
+        running.clear()

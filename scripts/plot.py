@@ -170,6 +170,8 @@ def make_plot(
     if not data.has_data():
         return
 
+    FONT_SIZE = 18
+
     fig, ax = plt.subplots(figsize=figsize)
 
     for s in data.series:
@@ -178,13 +180,14 @@ def make_plot(
         else:
             ax.scatter(s.x_data, s.y_data, s=20, color=s.color, alpha=0.7, label=s.label)
         if annotate:
-            ax.annotate(s.label, (s.x_data[-1], s.y_data[-1]), textcoords="offset points", xytext=(4, 4), fontsize=6, color=s.color, alpha=0.9)
+            ax.annotate(s.label, (s.x_data[-1], s.y_data[-1]), textcoords="offset points", xytext=(4, 4), fontsize=FONT_SIZE, color=s.color, alpha=0.9)
 
     handles = [Line2D([0], [0], color=s.color, marker="o", markersize=5, linewidth=1.5, label=s.label) for s in data.series]
-    ax.legend(handles=handles, fontsize=8)
-    ax.set_xlabel(data.x_label)
-    ax.set_ylabel(data.y_label)
-    ax.set_title(data.title)
+    ax.legend(handles=handles, fontsize=FONT_SIZE * 0.75)
+    ax.set_xlabel(data.x_label, fontsize=FONT_SIZE)
+    ax.set_ylabel(data.y_label, fontsize=FONT_SIZE)
+    ax.set_title(data.title, fontsize=FONT_SIZE)
+    ax.tick_params(labelsize=FONT_SIZE)
     ax.grid(True, alpha=0.3)
     ax.axhline(y=0, color="black", linewidth=1.0, linestyle="-")
 
@@ -450,7 +453,7 @@ def _family_plot_kwargs() -> dict:
     return dict(log_x=True, invert_x=True, y_bottom=0, annotate=True, connect_dots=True)
 
 def _quant_error_kwargs() -> dict:
-    return dict(log_y=True, invert_x=True)
+    return dict(invert_x=True)
 
 def plot_metrics(results: dict):
     for method, method_data in results.items():
